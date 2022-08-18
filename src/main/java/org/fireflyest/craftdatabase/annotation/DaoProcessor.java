@@ -24,7 +24,7 @@ public class DaoProcessor extends AbstractProcessor {
     private static final Pattern varPattern = Pattern.compile("\\$\\{([^{]*)}");
     private static final Pattern selectPattern = Pattern.compile("SELECT ([^ ]*)");
     private static final Pattern tablePattern = Pattern.compile("FROM ([^ ]*)");
-    
+
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
@@ -65,11 +65,7 @@ public class DaoProcessor extends AbstractProcessor {
                     ExecutableElement executableElement = ((ExecutableElement) enclosedElement);
                     // 返回的类型
                     String returnType = executableElement.getReturnType().toString();
-                    boolean returnArray = returnType.contains("[]");
-                    // 对象的类型
-                    String objType = returnArray ? returnType.substring(0, returnType.length() - 2) : returnType;
-                    // 对象对应的表
-                    String tableName = TableProcessor.getTableName(objType);
+
                     javaFileBuilder.append(returnType)
                             .append(" ")
                             .append(executableElement.getSimpleName())
@@ -92,170 +88,24 @@ public class DaoProcessor extends AbstractProcessor {
                     javaFileBuilder.append(") {\n\t\tString sql = \"");
                     // 查询内容
                     Select select;
+                    Insert insert;
+                    Delete delete;
+                    Update update;
+
                     if ((select = executableElement.getAnnotation(Select.class)) != null){
                         String sql = select.value();
-
-                        // 替换变量
-                        Matcher varMatcher = varPattern.matcher(sql);
-                        while (varMatcher.find()){
-                            String parameter = varMatcher.group();
-                            String parameterName = parameter.substring(2, parameter.length()-1);
-                            if (stringParameter.contains(parameterName)){
-                                parameterName = parameterName + ".replace(\"'\", \"''\")";
-                            }
-                            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-                        }
-                        javaFileBuilder.append(sql).append("\";");
-
-                        // 返回整个对象还是部分数据
-                        boolean returnAll = returnType.contains(".") && !"java.lang.String".equals(objType);
-                        String objDataType = returnAll ? objType : this.toObjDataType(objType);
-                        String selectColumn = "";
-                        Matcher selectMatcher = selectPattern.matcher(sql);
-                        Matcher tableMatcher = tablePattern.matcher(sql);
-                        if (selectMatcher.find()){
-                            selectColumn = selectMatcher.group().substring(7);
-                        }
-                        if (!returnAll && tableMatcher.find()) {
-                            tableName = tableMatcher.group().substring(5).replace("`", "");
-                        }
-
-                        // 新建返回对象列表
-                        if (returnArray){
-                            javaFileBuilder.append("\n\t\t").append(returnType).append(" returnValue;");
-                        } else {
-                            javaFileBuilder.append("\n\t\t").append(objDataType).append(" returnValue = null;");
-                        }
-                        javaFileBuilder.append("\n\t\tList<").append(objDataType).append("> objList = new ArrayList<>();");
-                        javaFileBuilder.append("\n\t\t");
-                        javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
-                        javaFileBuilder.append("\n\t\ttry (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)){");
-                        if (returnArray){
-                            javaFileBuilder.append("\n\t\t\twhile (resultSet.next()){");
-                        }else {
-                            javaFileBuilder.append("\n\t\t\tif (resultSet.next()){");
-                        }
-                        if (returnAll){
-                            javaFileBuilder.append("\n\t\t\t\t").append(objType).append(" obj = new ").append(objType).append("();");
-                            for (Map.Entry<String, TableProcessor.ColumnInfo> columnInfoEntry : TableProcessor.getTableColumns(tableName).entrySet()) {
-                                TableProcessor.ColumnInfo columnInfo = columnInfoEntry.getValue();
-                                javaFileBuilder.append("\n\t\t\t\t")
-                                        .append("obj.set").append(toFirstUpCase(columnInfo.varName))
-                                        .append("(resultSet.get")
-                                        .append(toSqlDataType(columnInfo.dataType))
-                                        .append("(\"").append(columnInfo.columnName).append("\"));");
-                            }
-                        }else {
-                            TableProcessor.ColumnInfo columnInfo = TableProcessor.getTableColumns(tableName).get(selectColumn);
-                            javaFileBuilder.append("\n\t\t\t\t")
-                                    .append(objType)
-                                    .append(" obj = resultSet.get")
-                                    .append(toSqlDataType(columnInfo.dataType))
-                                    .append("(\"").append(columnInfo.columnName).append("\");");
-                        }
-                        javaFileBuilder.append("\n\t\t\t\tobjList.add(obj);");
-                        javaFileBuilder.append("\n\t\t\t}");
-                        javaFileBuilder.append("\n\t\t} catch (SQLException e) {");
-                        javaFileBuilder.append("\n\t\t\te.printStackTrace();");
-                        javaFileBuilder.append("\n\t\t}");
-                        javaFileBuilder.append("\n\t\t");
-
-                        // 构建返回对象
-                        if (returnArray){
-                            if (returnAll) {
-                                javaFileBuilder.append("\n\t\treturnValue = objList.toArray(new ").append(objType).append("[0]);");
-                            } else {
-                                javaFileBuilder.append("\n\t\treturnValue = new ")
-                                        .append(returnType, 0, returnType.length()-1)
-                                        .append("objList.size()];\n\t\tint index = 0;\n\t\tfor (Long aValue : objList) returnValue[index++] = aValue;");
-                            }
-                        }else {
-                            javaFileBuilder.append("\n\t\tif (objList.size() != 0) returnValue = objList.get(0);");
-                        }
-
-                        // 返回值
-                        if (!returnArray && !returnAll) {
-                            if ("boolean".equals(returnType)){
-                                javaFileBuilder.append("\n\t\tif (returnValue == null) return false;");
-                            } else {
-                                javaFileBuilder.append("\n\t\tif (returnValue == null) return 0;");
-                            }
-                        }
-                        javaFileBuilder .append("\n\t\treturn returnValue;\n\t}\n");
-                    }
-
-                    Insert insert;
-                    if ((insert = executableElement.getAnnotation(Insert.class)) != null) {
+                        this.appendSelect(javaFileBuilder, sql, stringParameter, returnType);
+                    } else if ((insert = executableElement.getAnnotation(Insert.class)) != null) {
                         String sql = insert.value();
-
-                        // 替换变量
-                        Matcher varMatcher = varPattern.matcher(sql);
-                        while (varMatcher.find()){
-                            String parameter = varMatcher.group();
-                            String parameterName = parameter.substring(2, parameter.length()-1);
-                            if (stringParameter.contains(parameterName)){
-                                parameterName = parameterName + ".replace(\"'\", \"''\")";
-                            }
-                            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-                        }
-                        javaFileBuilder.append(sql).append("\";");
-
-                        javaFileBuilder.append("\n\t\tlong insertId = 0;");
-                        javaFileBuilder.append("\n\t\t");
-                        javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
-                        javaFileBuilder.append("\n\t\tResultSet resultSet;");
-                        javaFileBuilder.append("\n\t\ttry (PreparedStatement preparedStatement =connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){");
-                        javaFileBuilder.append("\n\t\t\tpreparedStatement.executeUpdate();");
-                        javaFileBuilder.append("\n\t\t\tresultSet = preparedStatement.getGeneratedKeys();");
-                        javaFileBuilder.append("\n\t\t\tif (resultSet.next()) insertId = resultSet.getInt(1);");
-                        javaFileBuilder.append("\n\t\t\tresultSet.close();");
-                        javaFileBuilder.append("\n\t\t\treturn id;");
-                        javaFileBuilder.append("\n\t\t} catch (SQLException e) {");
-                        javaFileBuilder.append("\n\t\t\te.printStackTrace();");
-                        javaFileBuilder.append("\n\t\t}");
-                        javaFileBuilder.append("\n\t\treturn insertId;\n\t}\n");
-                    }
-
-                    Delete delete;
-                    if ((delete = executableElement.getAnnotation(Delete.class)) != null) {
+                        this.appendInsert(javaFileBuilder, sql, stringParameter);
+                    } else if ((delete = executableElement.getAnnotation(Delete.class)) != null) {
                         String sql = delete.value();
-
-                        // 替换变量
-                        Matcher varMatcher = varPattern.matcher(sql);
-                        while (varMatcher.find()){
-                            String parameter = varMatcher.group();
-                            String parameterName = parameter.substring(2, parameter.length()-1);
-                            if (stringParameter.contains(parameterName)){
-                                parameterName = parameterName + ".replace(\"'\", \"''\")";
-                            }
-                            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-                        }
-                        javaFileBuilder.append(sql).append("\";");
-
-
-                    }
-
-                    Update update;
-                    if ((update = executableElement.getAnnotation(Update.class)) != null) {
+                        this.appendUpdate(javaFileBuilder, sql, stringParameter);
+                    } else if ((update = executableElement.getAnnotation(Update.class)) != null) {
                         String sql = update.value();
-
-                        // 替换变量
-                        Matcher varMatcher = varPattern.matcher(sql);
-                        while (varMatcher.find()){
-                            String parameter = varMatcher.group();
-                            String parameterName = parameter.substring(2, parameter.length()-1);
-                            if (stringParameter.contains(parameterName)){
-                                parameterName = parameterName + ".replace(\"'\", \"''\")";
-                            }
-                            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-                        }
-                        javaFileBuilder.append(sql).append("\";");
-
-
+                        this.appendUpdate(javaFileBuilder, sql, stringParameter);
                     }
                 }
-
-
 
                 javaFileBuilder.append("\n}");
 
@@ -273,6 +123,151 @@ public class DaoProcessor extends AbstractProcessor {
             }
         }
         return true;
+    }
+
+    private void appendUpdate(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter){
+        // 替换变量
+        Matcher varMatcher = varPattern.matcher(sql);
+        while (varMatcher.find()){
+            String parameter = varMatcher.group();
+            String parameterName = parameter.substring(2, parameter.length()-1);
+            if (stringParameter.contains(parameterName)){
+                parameterName = parameterName + ".replace(\"'\", \"''\")";
+            }
+            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
+        }
+        javaFileBuilder.append(sql).append("\";");
+
+        javaFileBuilder.append("\n\t\tlong num = 0;");
+        javaFileBuilder.append("\n\t\t");
+        javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
+        javaFileBuilder.append("\n\t\ttry (PreparedStatement preparedStatement =connection.prepareStatement(sql)){");
+        javaFileBuilder.append("\n\t\t\tnum = preparedStatement.executeUpdate();");
+        javaFileBuilder.append("\n\t\t\treturn num;");
+        javaFileBuilder.append("\n\t\t} catch (SQLException e) {");
+        javaFileBuilder.append("\n\t\t\te.printStackTrace();");
+        javaFileBuilder.append("\n\t\t}");
+        javaFileBuilder.append("\n\t\treturn num;\n\t}\n");
+    }
+
+    private void appendInsert(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter){
+        // 替换变量
+        Matcher varMatcher = varPattern.matcher(sql);
+        while (varMatcher.find()){
+            String parameter = varMatcher.group();
+            String parameterName = parameter.substring(2, parameter.length()-1);
+            if (stringParameter.contains(parameterName)){
+                parameterName = parameterName + ".replace(\"'\", \"''\")";
+            }
+            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
+        }
+        javaFileBuilder.append(sql).append("\";");
+
+        javaFileBuilder.append("\n\t\tlong num = 0;");
+        javaFileBuilder.append("\n\t\t");
+        javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
+        javaFileBuilder.append("\n\t\ttry (PreparedStatement preparedStatement =connection.prepareStatement(sql)){");
+        javaFileBuilder.append("\n\t\t\tnum = preparedStatement.executeUpdate();");
+        javaFileBuilder.append("\n\t\t\treturn num;");
+        javaFileBuilder.append("\n\t\t} catch (SQLException e) {");
+        javaFileBuilder.append("\n\t\t\te.printStackTrace();");
+        javaFileBuilder.append("\n\t\t}");
+        javaFileBuilder.append("\n\t\treturn num;\n\t}\n");
+    }
+
+    private void appendSelect(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter, String returnType){
+        // 替换变量
+        Matcher varMatcher = varPattern.matcher(sql);
+        while (varMatcher.find()){
+            String parameter = varMatcher.group();
+            String parameterName = parameter.substring(2, parameter.length()-1);
+            if (stringParameter.contains(parameterName)){
+                parameterName = parameterName + ".replace(\"'\", \"''\")";
+            }
+            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
+        }
+        javaFileBuilder.append(sql).append("\";");
+
+        boolean returnArray = returnType.contains("[]");
+        // 对象的类型
+        String objType = returnArray ? returnType.substring(0, returnType.length() - 2) : returnType;
+        // 对象对应的表
+        String tableName = TableProcessor.getTableName(objType);
+        // 返回整个对象还是部分数据
+        boolean returnAll = returnType.contains(".") && !"java.lang.String".equals(objType);
+        String objDataType = returnAll ? objType : this.toObjDataType(objType);
+        String selectColumn = "";
+        Matcher selectMatcher = selectPattern.matcher(sql);
+        Matcher tableMatcher = tablePattern.matcher(sql);
+        if (selectMatcher.find()){
+            selectColumn = selectMatcher.group().substring(7);
+        }
+        if (!returnAll && tableMatcher.find()) {
+            tableName = tableMatcher.group().substring(5).replace("`", "");
+        }
+
+        // 新建返回对象列表
+        if (returnArray){
+            javaFileBuilder.append("\n\t\t").append(returnType).append(" returnValue;");
+        } else {
+            javaFileBuilder.append("\n\t\t").append(objDataType).append(" returnValue = null;");
+        }
+        javaFileBuilder.append("\n\t\tList<").append(objDataType).append("> objList = new ArrayList<>();");
+        javaFileBuilder.append("\n\t\t");
+        javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
+        javaFileBuilder.append("\n\t\ttry (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)){");
+        if (returnArray){
+            javaFileBuilder.append("\n\t\t\twhile (resultSet.next()){");
+        }else {
+            javaFileBuilder.append("\n\t\t\tif (resultSet.next()){");
+        }
+        if (returnAll){
+            javaFileBuilder.append("\n\t\t\t\t").append(objType).append(" obj = new ").append(objType).append("();");
+            for (Map.Entry<String, TableProcessor.ColumnInfo> columnInfoEntry : TableProcessor.getTableColumns(tableName).entrySet()) {
+                TableProcessor.ColumnInfo columnInfo = columnInfoEntry.getValue();
+                javaFileBuilder.append("\n\t\t\t\t")
+                        .append("obj.set").append(toFirstUpCase(columnInfo.varName))
+                        .append("(resultSet.get")
+                        .append(toSqlDataType(columnInfo.dataType))
+                        .append("(\"").append(columnInfo.columnName).append("\"));");
+            }
+        }else {
+            TableProcessor.ColumnInfo columnInfo = TableProcessor.getTableColumns(tableName).get(selectColumn);
+            javaFileBuilder.append("\n\t\t\t\t")
+                    .append(objType)
+                    .append(" obj = resultSet.get")
+                    .append(toSqlDataType(columnInfo.dataType))
+                    .append("(\"").append(columnInfo.columnName).append("\");");
+        }
+        javaFileBuilder.append("\n\t\t\t\tobjList.add(obj);");
+        javaFileBuilder.append("\n\t\t\t}");
+        javaFileBuilder.append("\n\t\t} catch (SQLException e) {");
+        javaFileBuilder.append("\n\t\t\te.printStackTrace();");
+        javaFileBuilder.append("\n\t\t}");
+        javaFileBuilder.append("\n\t\t");
+
+        // 构建返回对象
+        if (returnArray){
+            if (returnAll) {
+                javaFileBuilder.append("\n\t\treturnValue = objList.toArray(new ").append(objType).append("[0]);");
+            } else {
+                javaFileBuilder.append("\n\t\treturnValue = new ")
+                        .append(returnType, 0, returnType.length()-1)
+                        .append("objList.size()];\n\t\tint index = 0;\n\t\tfor (Long aValue : objList) returnValue[index++] = aValue;");
+            }
+        }else {
+            javaFileBuilder.append("\n\t\tif (objList.size() != 0) returnValue = objList.get(0);");
+        }
+
+        // 返回值
+        if (!returnArray && !returnAll) {
+            if ("boolean".equals(returnType)){
+                javaFileBuilder.append("\n\t\tif (returnValue == null) return false;");
+            } else {
+                javaFileBuilder.append("\n\t\tif (returnValue == null) return 0;");
+            }
+        }
+        javaFileBuilder .append("\n\t\treturn returnValue;\n\t}\n");
     }
 
     /**

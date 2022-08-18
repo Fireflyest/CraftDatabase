@@ -50,9 +50,6 @@ public class TableProcessor extends AbstractProcessor {
         Messager messager = processingEnv.getMessager();
         messager.printMessage(Diagnostic.Kind.NOTE, "Processing database table...");
 
-//        tableNameMap.clear();
-//        tableInfoMap.clear();
-
         // 当前处理器支持的所有注解种类
         for (TypeElement typeElement : annotations) {
             // 获得被该注解声明的元素
@@ -104,7 +101,6 @@ public class TableProcessor extends AbstractProcessor {
                 break;
             }
         }
-//        messager.printMessage(Diagnostic.Kind.NOTE, "tables: " + tableNameMap);
         return true;
     }
 

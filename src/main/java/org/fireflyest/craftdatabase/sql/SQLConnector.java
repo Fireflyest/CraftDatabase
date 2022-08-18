@@ -87,6 +87,20 @@ public class SQLConnector {
         return connection;
     }
 
+    /**
+     * 关闭连接
+     * @param url 连接地址
+     */
+    public static void close(String url){
+        Connection connection = connectionMap.get(url);
+        if (connection == null) return;
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static class ConnectInfo {
 
         public ConnectInfo(String url, String user, String password) {
