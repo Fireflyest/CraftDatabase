@@ -19,8 +19,8 @@ import java.util.Set;
 @SupportedAnnotationTypes("org.fireflyest.craftdatabase.annotation.Table")
 public class TableProcessor extends AbstractProcessor {
 
-    public static final Map<String, Map<String, ColumnInfo>> tableInfoMap = new HashMap<>();
-    public static final Map<String, String> tableNameMap = new HashMap<>();
+    private static final Map<String, Map<String, ColumnInfo>> tableInfoMap = new HashMap<>();
+    private static final Map<String, String> tableNameMap = new HashMap<>();
 
     /**
      * 通过表名获取列信息
@@ -38,10 +38,6 @@ public class TableProcessor extends AbstractProcessor {
      */
     public static String getTableName(String objType){
         return tableNameMap.get(objType);
-    }
-
-    public static String getTables(){
-        return tableNameMap.toString();
     }
 
     @Override
@@ -103,7 +99,7 @@ public class TableProcessor extends AbstractProcessor {
                         }
                     }
 
-                    tableInfoMap.get(tableName).put(varName, columnInfo);
+                    tableInfoMap.get(tableName).put(columnName, columnInfo);
                 }
                 break;
             }
