@@ -7,10 +7,9 @@ import java.lang.annotation.Target;
 
 /**
  * @author Fireflyest
- * @since 2022/8/18
+ * @since 2022/8/19
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Service {
-    boolean createTable() default true;
+public @interface Auto {
 }

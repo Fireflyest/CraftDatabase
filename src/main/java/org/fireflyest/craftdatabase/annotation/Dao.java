@@ -12,10 +12,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Dao {
-
-    enum Database{
-        MYSQL,
-        SQLITE
-    }
-    Database database() default Database.SQLITE;
+    String value() default "";
 }

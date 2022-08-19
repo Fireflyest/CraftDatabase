@@ -3,4 +3,4 @@ version: '${project.version}'
 main: org.fireflyest.craftdatabase.CraftDatabase
 api-version: 1.14
 authors: [ Fireflyest ]
-description: Database for plugins
+description: Database tools for plugins

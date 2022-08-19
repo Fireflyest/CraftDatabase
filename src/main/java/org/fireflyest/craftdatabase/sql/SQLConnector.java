@@ -96,6 +96,7 @@ public class SQLConnector {
         if (connection == null) return;
         try {
             connection.close();
+            connectionMap.remove(url);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

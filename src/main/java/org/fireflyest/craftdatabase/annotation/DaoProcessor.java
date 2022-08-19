@@ -1,5 +1,7 @@
 package org.fireflyest.craftdatabase.annotation;
 
+import org.fireflyest.craftdatabase.builder.SQLCreateTable;
+
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -9,6 +11,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,13 +42,14 @@ public class DaoProcessor extends AbstractProcessor {
         for (TypeElement typeElement : annotations) {
             // 获得被该注解声明的元素
             for (Element element : roundEnv.getElementsAnnotatedWith(typeElement)) {
-//                Dao dao = element.getAnnotation(Dao.class);
+                Dao dao = element.getAnnotation(Dao.class);
 
                 TypeElement interfaceElement = ((TypeElement) element);
                 String className = interfaceElement.getQualifiedName().toString();
                 String daoName = interfaceElement.getSimpleName().toString();
                 String pack = className.substring(0, className.lastIndexOf("."));
 
+                // 头部
                 StringBuilder javaFileBuilder = new StringBuilder()
                         .append("package ")
                         .append(pack)
@@ -53,7 +57,30 @@ public class DaoProcessor extends AbstractProcessor {
                         .append(daoName)
                         .append("Impl implements ")
                         .append(daoName)
-                        .append(" {\n\n\tprivate final String url;\n\n\tpublic ")
+                        .append(" {\n\n\tprivate final String url;");
+
+                // 建表
+                javaFileBuilder.append("\n\n\tprivate final String createTable = \"");
+                if (!"".equals(dao.value())){
+                    String tableClassName = dao.value();
+                    String tableName = TableProcessor.getTableName(tableClassName);
+                    SQLCreateTable createTableBuilder = new SQLCreateTable(tableName);
+                    for (TableProcessor.ColumnInfo value : TableProcessor.getTableColumns(tableName).values()) {
+                        if (value.id){
+                            createTableBuilder.id(value.columnName);
+                        } else if (value.primary) {
+                            createTableBuilder.primary(value.columnName, Objects.requireNonNullElseGet(value.columnDataType, () -> "${" + value.dataType + "}"));
+                        } else {
+                            createTableBuilder.columns(value.columnName, Objects.requireNonNullElseGet(value.columnDataType, () -> "${" + value.dataType + "}"), value.noNull, value.defaultValue);
+                        }
+                    }
+                    javaFileBuilder.append(createTableBuilder.build().replace("\n", ""));
+                }
+                javaFileBuilder.append("\";");
+                javaFileBuilder.append("\n\n\tpublic java.lang.String getCreateTableSQL(){ return createTable; }");
+
+                // 构造函数
+                javaFileBuilder.append("\n\n\tpublic ")
                         .append(daoName)
                         .append("Impl(String url) {\n\t\tthis.url = url;\n\t}\n");
 
@@ -91,7 +118,6 @@ public class DaoProcessor extends AbstractProcessor {
                     Insert insert;
                     Delete delete;
                     Update update;
-
                     if ((select = executableElement.getAnnotation(Select.class)) != null){
                         String sql = select.value();
                         this.appendSelect(javaFileBuilder, sql, stringParameter, returnType);
@@ -118,8 +144,6 @@ public class DaoProcessor extends AbstractProcessor {
                     writer.flush();
                     writer.close();
                 } catch (IOException ignored) { }
-
-                messager.printMessage(Diagnostic.Kind.NOTE, javaFileBuilder.toString());
             }
         }
         return true;
@@ -199,9 +223,11 @@ public class DaoProcessor extends AbstractProcessor {
         String selectColumn = "";
         Matcher selectMatcher = selectPattern.matcher(sql);
         Matcher tableMatcher = tablePattern.matcher(sql);
+        // 获取选择的列
         if (selectMatcher.find()){
             selectColumn = selectMatcher.group().substring(7);
         }
+        // 获取表名
         if (!returnAll && tableMatcher.find()) {
             tableName = tableMatcher.group().substring(5).replace("`", "");
         }
