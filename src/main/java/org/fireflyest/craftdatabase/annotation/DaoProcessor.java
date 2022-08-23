@@ -273,15 +273,18 @@ public class DaoProcessor extends AbstractProcessor {
     private String varReplace(String sql, Set<String> stringParameter){
         // 替换变量
         Matcher varMatcher = varPattern.matcher(sql);
+        StringBuilder stringBuilder = new StringBuilder();
         while (varMatcher.find()){
             String parameter = varMatcher.group();
             String parameterName = parameter.substring(2, parameter.length()-1);
             if (stringParameter.contains(parameterName)){
                 parameterName = parameterName + ".replace(\"'\", \"''\")";
             }
-            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
+            parameterName = "\" + " + parameterName + " + \"";
+            varMatcher.appendReplacement(stringBuilder, parameterName);
         }
-        return sql;
+        varMatcher.appendTail(stringBuilder);
+        return stringBuilder.toString();
     }
 
     /**

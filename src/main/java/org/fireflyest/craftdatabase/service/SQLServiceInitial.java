@@ -37,33 +37,44 @@ public class SQLServiceInitial {
             Class<?> daoImplClass = Class.forName(String.format("%s.%sImpl", daoClass.getPackageName(), daoClass.getSimpleName()));
             Constructor<?> declaredConstructor = daoImplClass.getDeclaredConstructor(String.class);
             declaredField.set(service, declaredConstructor.newInstance(service.getUrl()));
-            // 建表
+            // 判断是否建表
             if (! serviceAnnotation.createTable()) continue;
             // 获取sql
             Method method = daoImplClass.getMethod("getCreateTableSQL");
             String sql = (String) method.invoke(declaredField.get(service));
-            if ("".equals(sql)) continue;
-            // 替换数据类型
             Matcher matcher = jdbcPattern.matcher(service.getUrl());
-            if (matcher.find()){
-                String type = matcher.group().substring(5);
-                // 是否sqlite
-                boolean sqliteType = "sqlite".equals(type);
-                if (sqliteType) {
-                    sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT");
-                }
-                Matcher varMatcher = varPattern.matcher(sql);
-                while (varMatcher.find()){
-                    String parameter = varMatcher.group();
-                    String parameterName = parameter.substring(2, parameter.length()-1);
-                    parameterName = sqliteType ?  javaType2SqliteType(parameterName) :  javaType2MysqlType(parameterName);
-                    sql = sql.replace(parameter, parameterName);
-                }
+            if (matcher.find()) {
                 // 建表
+                sql = varReplace(matcher.group().substring(5), sql);
                 service.execute(sql);
             }
         }
     }
+
+    /**
+     * 替换数据类型
+     * @param type 数据库类型
+     * @param sql 建表语句
+     * @return 替换数据类型后的建表语句
+     */
+    private static String varReplace(String type, String sql){
+        // 是否sqlite
+        boolean sqliteType = "sqlite".equals(type);
+        if (sqliteType) {
+            sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT");
+        }
+        Matcher varMatcher = varPattern.matcher(sql);
+        StringBuilder stringBuilder = new StringBuilder();
+        while (varMatcher.find()){
+            String parameter = varMatcher.group();
+            String parameterName = parameter.substring(2, parameter.length()-1);
+            parameterName = sqliteType ?  javaType2SqliteType(parameterName) :  javaType2MysqlType(parameterName);
+            varMatcher.appendReplacement(stringBuilder, parameterName);
+        }
+        varMatcher.appendTail(stringBuilder);
+        return stringBuilder.toString();
+    }
+
 
     /**
      * 将java数据类型转化为sql数据类型
