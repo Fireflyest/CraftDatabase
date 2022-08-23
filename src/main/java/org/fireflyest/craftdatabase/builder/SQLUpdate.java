@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * @author Fireflyest
@@ -15,7 +15,7 @@ public class SQLUpdate {
      * UPDATE `{table}` SET
      * @param table 表名
      */
-    public SQLUpdate(@NotNull String table) {
+    public SQLUpdate(@Nonnull String table) {
         this.update = new Update(updateBuilder);
 
         updateBuilder.append("UPDATE `").append(table).append("`\nSET");
@@ -27,7 +27,7 @@ public class SQLUpdate {
      * @param number 运算数字
      * @return 更新语句
      */
-    public Update updateNumber(@NotNull String column, @NotNull String symbol, @NotNull Number number){
+    public Update updateNumber(@Nonnull String column, @Nonnull String symbol, @Nonnull Number number){
         updateBuilder.append(" `")
                 .append(column)
                 .append("`=`")
@@ -44,7 +44,7 @@ public class SQLUpdate {
      * @param number 值
      * @return 更新语句
      */
-    public Update updateNumber(@NotNull String column, @NotNull Number number){
+    public Update updateNumber(@Nonnull String column, @Nonnull Number number){
         updateBuilder.append("`")
                 .append(column)
                 .append("`=")
@@ -58,7 +58,7 @@ public class SQLUpdate {
      * @param value 值
      * @return 更新语句
      */
-    public Update updateString(@NotNull String column, @NotNull String value){
+    public Update updateString(@Nonnull String column, @Nonnull String value){
         updateBuilder.append("`")
                 .append(column)
                 .append("`='")
@@ -67,7 +67,7 @@ public class SQLUpdate {
         return update;
     }
 
-    public Update update(@NotNull String column, boolean bool){
+    public Update update(@Nonnull String column, boolean bool){
         updateBuilder.append("`")
                 .append(column)
                 .append("`=")

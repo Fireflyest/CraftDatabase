@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * @author Fireflyest
@@ -26,7 +26,7 @@ public class SQLDelete {
      * @param tables 查找的所有表
      * @return 查找语句
      */
-    public Delete from(@NotNull String... tables){
+    public Delete from(@Nonnull String... tables){
         int i = 0;
         deleteBuilder.append(" FROM ");
         for (String table : tables) {

@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * 修改表
@@ -16,7 +16,7 @@ public class SQLAlterTable {
      * ALTER TABLE `{table}`
      * @param table 表名
      */
-    public SQLAlterTable(@NotNull String table) {
+    public SQLAlterTable(@Nonnull String table) {
         this.alterTable = new AlterTable();
 
         alterTableBuilder.append("ALTER TABLE `").append(table).append("`");
@@ -28,7 +28,7 @@ public class SQLAlterTable {
      * @param column 列名
      * @return 修改指令
      */
-    public AlterTable add(@NotNull String column, @NotNull String type){
+    public AlterTable add(@Nonnull String column, @Nonnull String type){
         alterTableBuilder.append("\nADD COLUMN `")
                 .append(column)
                 .append("` ")
@@ -42,7 +42,7 @@ public class SQLAlterTable {
      * @param column 列名
      * @return 修改指令
      */
-    public AlterTable drop(@NotNull String column){
+    public AlterTable drop(@Nonnull String column){
         alterTableBuilder.append("\nDROP COLUMN `")
                 .append(column)
                 .append("` ");

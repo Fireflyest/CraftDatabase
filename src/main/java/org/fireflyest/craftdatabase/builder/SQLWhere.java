@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * 寻找符合条件的范围
@@ -44,7 +44,7 @@ public abstract class SQLWhere{
      * @param number 数值
      * @return 条件语句
      */
-    public Where compare(@NotNull String column, @NotNull String symbol, @NotNull Number number){
+    public Where compare(@Nonnull String column, @Nonnull String symbol, @Nonnull Number number){
         whereBuilder.append(" `")
                 .append(column)
                 .append("`")
@@ -60,7 +60,7 @@ public abstract class SQLWhere{
      * @param end 结束数值
      * @return 条件语句
      */
-    public Where between(@NotNull String column, @NotNull Number start, @NotNull Number end){
+    public Where between(@Nonnull String column, @Nonnull Number start, @Nonnull Number end){
         whereBuilder.append(" `")
                 .append(column)
                 .append("` BETWEEN ")
@@ -76,7 +76,7 @@ public abstract class SQLWhere{
      * @param value 值
      * @return 条件语句
      */
-    public Where equal(@NotNull String column, @NotNull String value){
+    public Where equal(@Nonnull String column, @Nonnull String value){
         whereBuilder.append(" `")
                 .append(column)
                 .append("`='")
@@ -91,7 +91,7 @@ public abstract class SQLWhere{
      * @param value 值
      * @return 条件语句
      */
-    public Where notEqual(@NotNull String column, @NotNull String value){
+    public Where notEqual(@Nonnull String column, @Nonnull String value){
         whereBuilder.append(" `")
                 .append(column)
                 .append("`<>'")
@@ -105,7 +105,7 @@ public abstract class SQLWhere{
      * @param column 键
      * @return 条件语句
      */
-    public Where isNull(@NotNull String column){
+    public Where isNull(@Nonnull String column){
         whereBuilder.append(" `")
                 .append(column)
                 .append("` IS NULL");
@@ -118,7 +118,7 @@ public abstract class SQLWhere{
      * @param column 键
      * @return 条件语句
      */
-    public Where in(@NotNull String column, @NotNull String... values){
+    public Where in(@Nonnull String column, @Nonnull String... values){
         whereBuilder.append(" `")
                 .append(column)
                 .append("` IN ('");
@@ -137,7 +137,7 @@ public abstract class SQLWhere{
      * @param string 条件
      * @return 条件语句
      */
-    public Where like(@NotNull String column, @NotNull String string){
+    public Where like(@Nonnull String column, @Nonnull String string){
         whereBuilder.append(" `")
                 .append(column)
                 .append("` LIKE '")
@@ -152,7 +152,7 @@ public abstract class SQLWhere{
      * @param string 条件
      * @return 条件语句
      */
-    public Where notLike(@NotNull String column, @NotNull String string){
+    public Where notLike(@Nonnull String column, @Nonnull String string){
         whereBuilder.append(" `")
                 .append(column)
                 .append("` NOT LIKE '")

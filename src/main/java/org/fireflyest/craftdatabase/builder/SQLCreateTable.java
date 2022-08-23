@@ -1,7 +1,7 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * 创建表语句
@@ -13,7 +13,7 @@ public class SQLCreateTable implements SQLBuildable {
     private final StringBuilder createTableBuilder = new StringBuilder();
     private boolean firstColumns = true;
 
-    public SQLCreateTable(@NotNull String table) {
+    public SQLCreateTable(@Nonnull String table) {
         createTableBuilder.append("CREATE TABLE IF NOT EXISTS `").append(table).append("`(\n");
     }
 
@@ -25,7 +25,7 @@ public class SQLCreateTable implements SQLBuildable {
      * @param defaultValue 默认值
      * @return 建表语句
      */
-    public SQLCreateTable columns(@NotNull String column, @NotNull String type, boolean noNull, @Nullable String defaultValue){
+    public SQLCreateTable columns(@Nonnull String column, @Nonnull String type, boolean noNull, @Nullable String defaultValue){
         if (firstColumns){
             firstColumns = false;
         } else {
@@ -45,15 +45,15 @@ public class SQLCreateTable implements SQLBuildable {
         return this;
     }
 
-    public SQLCreateTable columns(@NotNull String column, @NotNull String type, boolean noNull){
+    public SQLCreateTable columns(@Nonnull String column, @Nonnull String type, boolean noNull){
         return columns(column, type, noNull, null);
     }
 
-    public SQLCreateTable columns(@NotNull String column, @NotNull String type, @Nullable String defaultValue){
+    public SQLCreateTable columns(@Nonnull String column, @Nonnull String type, @Nullable String defaultValue){
         return columns(column, type, false, defaultValue);
     }
 
-    public SQLCreateTable columns(@NotNull String column, @NotNull String type){
+    public SQLCreateTable columns(@Nonnull String column, @Nonnull String type){
         return columns(column, type, false, null);
     }
 
@@ -63,7 +63,7 @@ public class SQLCreateTable implements SQLBuildable {
      * @param type 数据类型
      * @return 建表语句
      */
-    public SQLCreateTable columns(@NotNull String column, @NotNull String type, @NotNull Number defaultValue){
+    public SQLCreateTable columns(@Nonnull String column, @Nonnull String type, @Nonnull Number defaultValue){
         if (firstColumns){
             firstColumns = false;
         } else {
@@ -81,7 +81,7 @@ public class SQLCreateTable implements SQLBuildable {
      * @param autoIncrement 自增词不同数据库不同
      * @return 建表指令
      */
-    public SQLCreateTable id(@NotNull String column, @NotNull String autoIncrement){
+    public SQLCreateTable id(@Nonnull String column, @Nonnull String autoIncrement){
         if (firstColumns){
             firstColumns = false;
         } else {
@@ -95,8 +95,8 @@ public class SQLCreateTable implements SQLBuildable {
         return this;
     }
 
-    public SQLCreateTable id(@NotNull String column){
-        return id(column, "AUTOINCREMENT");
+    public SQLCreateTable id(@Nonnull String column){
+        return id(column, "AUTO_INCREMENT");
     }
 
     /**
@@ -105,7 +105,7 @@ public class SQLCreateTable implements SQLBuildable {
      * @param type 数据类型
      * @return 建表指令
      */
-    public SQLCreateTable primary(@NotNull String column, @NotNull String type){
+    public SQLCreateTable primary(@Nonnull String column, @Nonnull String type){
         if (firstColumns){
             firstColumns = false;
         } else {

@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * 创建表语句
@@ -15,7 +15,7 @@ public class SQLDropTable implements SQLBuildable{
      * DROP TABLE `{table}`
      * @param table 表名
      */
-    public SQLDropTable(@NotNull String table) {
+    public SQLDropTable(@Nonnull String table) {
         dropTableBuilder.append("DROP TABLE `").append(table).append("`");
     }
 

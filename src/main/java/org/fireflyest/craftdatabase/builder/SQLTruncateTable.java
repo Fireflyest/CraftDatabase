@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * 清空所有行
@@ -14,7 +14,7 @@ public class SQLTruncateTable implements SQLBuildable{
      * TRUNCATE TABLE `{table}`
      * @param table 表名
      */
-    public SQLTruncateTable(@NotNull String table) {
+    public SQLTruncateTable(@Nonnull String table) {
         truncateTableBuilder.append("TRUNCATE TABLE `").append(table).append("`");
     }
 

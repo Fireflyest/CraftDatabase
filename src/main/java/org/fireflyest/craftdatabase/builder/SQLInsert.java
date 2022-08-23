@@ -1,6 +1,6 @@
 package org.fireflyest.craftdatabase.builder;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 /**
  * @author Fireflyest
@@ -20,7 +20,7 @@ public class SQLInsert {
      * INSERT INTO `{table}`
      * @param table 表名
      */
-    public SQLInsert(@NotNull String table) {
+    public SQLInsert(@Nonnull String table) {
         this.insert = new Insert();
 
         insertBuilder.append("INSERT INTO `").append(table).append("`");
@@ -31,7 +31,7 @@ public class SQLInsert {
      * @param columns 键
      * @return 插入语句
      */
-    public Insert columns(@NotNull String... columns){
+    public Insert columns(@Nonnull String... columns){
         columnsNum = columns.length;
 
         insertBuilder.append(" (`");
@@ -57,7 +57,7 @@ public class SQLInsert {
          * @param strings 值
          * @return 插入语句
          */
-        public Insert values(@NotNull String... strings){
+        public Insert values(@Nonnull String... strings){
             for (String string : strings) {
                 if (valuesNum++ == columnsNum) break;
                 if (firstValue) {
@@ -78,7 +78,7 @@ public class SQLInsert {
          * @param numbers 值
          * @return 插入语句
          */
-        public Insert values(@NotNull Number... numbers){
+        public Insert values(@Nonnull Number... numbers){
             for (Number number : numbers) {
                 if (valuesNum++ == columnsNum) break;
                 if (firstValue) {

@@ -1,15 +1,13 @@
-package org.fireflyest.craftdatabase.sql;
+package org.fireflyest.craftdatabase.service;
 
 import org.fireflyest.craftdatabase.annotation.Auto;
 import org.fireflyest.craftdatabase.annotation.Service;
 
+import javax.annotation.Nonnull;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,56 +23,44 @@ public class SQLServiceInitial {
     private SQLServiceInitial() {
     }
 
-    public static void  init(Class<?> serviceClass, String url) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Service service = serviceClass.getAnnotation(Service.class);
-        if (service == null) return;
-        // 是否自动建表
-        boolean createTable = service.createTable();
-        // 遍历成员变量
+    public static <T extends SQLService> void  init(@Nonnull T service) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        Class<?> serviceClass = service.getClass();
+        Service serviceAnnotation = serviceClass.getAnnotation(Service.class);
+        if (serviceAnnotation == null) return;
+        // 遍历dao成员变量
         for (Field declaredField : serviceClass.getDeclaredFields()) {
-            Class<?> daoClass, daoImplClass;
             // 判断是否自动实现
             if (declaredField.getAnnotation(Auto.class) == null) continue;
             declaredField.setAccessible(true);
-            // 获取实例类
-            daoClass = declaredField.getType();
-            String implClass = daoClass.getPackageName() + "." + daoClass.getSimpleName() + "Impl";
-            daoImplClass = Class.forName(implClass);
-            // 实例化对象并赋值
+            // 获取实例类后实例化对象并自动赋值
+            Class<?> daoClass = declaredField.getType();
+            Class<?> daoImplClass = Class.forName(String.format("%s.%sImpl", daoClass.getPackageName(), daoClass.getSimpleName()));
             Constructor<?> declaredConstructor = daoImplClass.getDeclaredConstructor(String.class);
-            declaredField.set(null, declaredConstructor.newInstance(url));
+            declaredField.set(service, declaredConstructor.newInstance(service.getUrl()));
             // 建表
-            if (!createTable) continue;
+            if (! serviceAnnotation.createTable()) continue;
             // 获取sql
             Method method = daoImplClass.getMethod("getCreateTableSQL");
-            String sql = (String) method.invoke(declaredField.get(null));
+            String sql = (String) method.invoke(declaredField.get(service));
             if ("".equals(sql)) continue;
             // 替换数据类型
-            Matcher matcher = jdbcPattern.matcher(url);
+            Matcher matcher = jdbcPattern.matcher(service.getUrl());
             if (matcher.find()){
                 String type = matcher.group().substring(5);
+                // 是否sqlite
                 boolean sqliteType = "sqlite".equals(type);
                 if (sqliteType) {
-                    sql = sql.replace("AUTOINCREMENT", "AUTO_INCREMENT");
+                    sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT");
                 }
                 Matcher varMatcher = varPattern.matcher(sql);
                 while (varMatcher.find()){
                     String parameter = varMatcher.group();
                     String parameterName = parameter.substring(2, parameter.length()-1);
-                    if (sqliteType){
-                        parameterName = javaType2SqliteType(parameterName);
-                    }else {
-                        parameterName = javaType2MysqlType(parameterName);
-                    }
+                    parameterName = sqliteType ?  javaType2SqliteType(parameterName) :  javaType2MysqlType(parameterName);
                     sql = sql.replace(parameter, parameterName);
                 }
                 // 建表
-                Connection connection = SQLConnector.getConnect(url);
-                try (Statement statement = connection.createStatement()){
-                    statement.execute(sql);
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                service.execute(sql);
             }
         }
     }

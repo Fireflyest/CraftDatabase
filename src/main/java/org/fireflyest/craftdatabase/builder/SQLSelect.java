@@ -1,5 +1,7 @@
 package org.fireflyest.craftdatabase.builder;
 
+import javax.annotation.Nonnull;
+
 /**
  * todo 函数 分组 过滤 子查询
  * @author Fireflyest
@@ -23,14 +25,14 @@ public class SQLSelect {
      * SELECT {column},{column}...
      * @param columns 查找的所有键
      */
-    public SQLSelect(String... columns) {
+    public SQLSelect(@Nonnull String... columns) {
         this.select = new Select(selectBuilder);
 
         int i = 0;
         selectBuilder.append("SELECT ");
         for (String column : columns) {
             if (i++ > 0) selectBuilder.append(",");
-            selectBuilder.append(column);
+            selectBuilder.append("`").append(column).append("`");
         }
     }
 
@@ -39,7 +41,7 @@ public class SQLSelect {
      * @param tables 查找的所有表
      * @return 查找语句
      */
-    public Select from(String... tables){
+    public Select from(@Nonnull String... tables){
         int i = 0;
         selectBuilder.append(" FROM ");
         for (String table : tables) {
