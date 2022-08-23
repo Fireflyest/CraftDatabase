@@ -119,17 +119,21 @@ public class DaoProcessor extends AbstractProcessor {
                     Delete delete;
                     Update update;
                     if ((select = executableElement.getAnnotation(Select.class)) != null){
-                        String sql = select.value();
-                        this.appendSelect(javaFileBuilder, sql, stringParameter, returnType);
+                        String sqlVar = this.varReplace(select.value(), stringParameter);
+                        javaFileBuilder.append(sqlVar).append("\";");
+                        this.appendSelect(javaFileBuilder, select.value(), returnType);
                     } else if ((insert = executableElement.getAnnotation(Insert.class)) != null) {
-                        String sql = insert.value();
-                        this.appendInsert(javaFileBuilder, sql, stringParameter);
+                        String sqlVar = this.varReplace(insert.value(), stringParameter);
+                        javaFileBuilder.append(sqlVar).append("\";");
+                        this.appendInsert(javaFileBuilder);
                     } else if ((delete = executableElement.getAnnotation(Delete.class)) != null) {
-                        String sql = delete.value();
-                        this.appendUpdate(javaFileBuilder, sql, stringParameter);
+                        String sqlVar = this.varReplace(delete.value(), stringParameter);
+                        javaFileBuilder.append(sqlVar).append("\";");
+                        this.appendUpdate(javaFileBuilder);
                     } else if ((update = executableElement.getAnnotation(Update.class)) != null) {
-                        String sql = update.value();
-                        this.appendUpdate(javaFileBuilder, sql, stringParameter);
+                        String sqlVar = this.varReplace(update.value(), stringParameter);
+                        javaFileBuilder.append(sqlVar).append("\";");
+                        this.appendUpdate(javaFileBuilder);
                     }
                 }
 
@@ -149,19 +153,7 @@ public class DaoProcessor extends AbstractProcessor {
         return true;
     }
 
-    private void appendUpdate(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter){
-        // 替换变量
-        Matcher varMatcher = varPattern.matcher(sql);
-        while (varMatcher.find()){
-            String parameter = varMatcher.group();
-            String parameterName = parameter.substring(2, parameter.length()-1);
-            if (stringParameter.contains(parameterName)){
-                parameterName = parameterName + ".replace(\"'\", \"''\")";
-            }
-            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-        }
-        javaFileBuilder.append(sql).append("\";");
-
+    private void appendUpdate(StringBuilder javaFileBuilder){
         javaFileBuilder.append("\n\t\tlong num = 0;");
         javaFileBuilder.append("\n\t\t");
         javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
@@ -174,19 +166,7 @@ public class DaoProcessor extends AbstractProcessor {
         javaFileBuilder.append("\n\t\treturn num;\n\t}\n");
     }
 
-    private void appendInsert(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter){
-        // 替换变量
-        Matcher varMatcher = varPattern.matcher(sql);
-        while (varMatcher.find()){
-            String parameter = varMatcher.group();
-            String parameterName = parameter.substring(2, parameter.length()-1);
-            if (stringParameter.contains(parameterName)){
-                parameterName = parameterName + ".replace(\"'\", \"''\")";
-            }
-            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-        }
-        javaFileBuilder.append(sql).append("\";");
-
+    private void appendInsert(StringBuilder javaFileBuilder){
         javaFileBuilder.append("\n\t\tlong num = 0;");
         javaFileBuilder.append("\n\t\t");
         javaFileBuilder.append("\n\t\tConnection connection = org.fireflyest.craftdatabase.sql.SQLConnector.getConnect(url);");
@@ -199,19 +179,7 @@ public class DaoProcessor extends AbstractProcessor {
         javaFileBuilder.append("\n\t\treturn num;\n\t}\n");
     }
 
-    private void appendSelect(StringBuilder javaFileBuilder, String sql, Set<String> stringParameter, String returnType){
-        // 替换变量
-        Matcher varMatcher = varPattern.matcher(sql);
-        while (varMatcher.find()){
-            String parameter = varMatcher.group();
-            String parameterName = parameter.substring(2, parameter.length()-1);
-            if (stringParameter.contains(parameterName)){
-                parameterName = parameterName + ".replace(\"'\", \"''\")";
-            }
-            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
-        }
-        javaFileBuilder.append(sql).append("\";");
-
+    private void appendSelect(StringBuilder javaFileBuilder, String sql , String returnType){
         boolean returnArray = returnType.contains("[]");
         // 对象的类型
         String objType = returnArray ? returnType.substring(0, returnType.length() - 2) : returnType;
@@ -294,6 +262,26 @@ public class DaoProcessor extends AbstractProcessor {
             }
         }
         javaFileBuilder .append("\n\t\treturn returnValue;\n\t}\n");
+    }
+
+    /**
+     * 替换sql语句中的变量
+     * @param sql sql语句
+     * @param stringParameter 字符串类型变量集
+     * @return 带变量的sql语句
+     */
+    private String varReplace(String sql, Set<String> stringParameter){
+        // 替换变量
+        Matcher varMatcher = varPattern.matcher(sql);
+        while (varMatcher.find()){
+            String parameter = varMatcher.group();
+            String parameterName = parameter.substring(2, parameter.length()-1);
+            if (stringParameter.contains(parameterName)){
+                parameterName = parameterName + ".replace(\"'\", \"''\")";
+            }
+            sql = sql.replace(parameter, "\" + " + parameterName + " + \"");
+        }
+        return sql;
     }
 
     /**
